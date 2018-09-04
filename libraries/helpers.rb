@@ -15,10 +15,10 @@
 # limitations under the License.
 #
 
+include Chef::Mixin::ShellOut # wrapping this inside the module breaks MiniTests which use shell_out
+
 module PostgresqlCookbook
   module Helpers
-    include Chef::Mixin::ShellOut
-
     require 'securerandom'
 
     def psql_command_string(new_resource, query, grep_for = nil)
@@ -243,6 +243,12 @@ module PostgresqlCookbook
     # Generate a password if the value is set to generate.
     def postgres_password(new_resource)
       new_resource.password == 'generate' ? secure_random : new_resource.password
+    end
+
+    # Grants a user access to database
+    def grant_user_db_sql(new_resource)
+      sql = "GRANT #{new_resource.privileges.join(', ')} ON DATABASE #{new_resource.database} TO #{new_resource.create_user};"
+      psql_command_string(new_resource, sql)
     end
   end
 end

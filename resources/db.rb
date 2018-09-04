@@ -17,7 +17,7 @@
 
 property :template, String, default: 'template1'
 property :encoding, String, default: 'UTF-8'
-property :locale,   String, default: 'en_US.UTF-8'
+property :locale,   String, default: 'en_US.utf8'
 property :owner,    String
 
 # Connection prefernces

@@ -27,6 +27,8 @@ property :encrypted_password, String
 property :valid_until,        String
 property :attributes,         Hash, default: {}
 property :sensitive,          [true, false], default: true
+property :database,           String
+property :privileges,         Array
 
 # Connection prefernces
 property :user,     String, default: 'postgres'
@@ -81,6 +83,17 @@ action :drop do
     sensitive true
     not_if { slave? }
     only_if { user_exists?(new_resource) }
+  end
+end
+
+action :grant do
+  if new_resource.database && new_resource.privileges
+    execute "grant #{new_resource.create_user} access to #{new_resource.database}" do
+      user 'postgres'
+      command grant_user_db_sql(new_resource)
+      not_if { slave? }
+      only_if { user_exists?(new_resource) && database_exists?(new_resource) }
+    end
   end
 end
 
