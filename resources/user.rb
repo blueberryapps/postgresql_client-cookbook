@@ -26,15 +26,12 @@ property :password,           String
 property :encrypted_password, String
 property :valid_until,        String
 property :attributes,         Hash, default: {}
-property :sensitive,          [true, false], default: true
 property :database,           String
 property :privileges,         Array
 
 # Connection prefernces
-property :user,     String, default: 'postgres'
 property :database, String
-property :host,     [String, nil]
-property :port,     Integer, default: 5432
+property :conn,     Hash, default: {}
 
 action :create do
   Chef::Log.warn('You cannot use "attributes" property with create action.') unless new_resource.attributes.empty?
@@ -42,7 +39,7 @@ action :create do
   execute "create postgresql user #{new_resource.create_user}" do # ~FC009
     user 'postgres'
     command create_user_sql(new_resource)
-    sensitive new_resource.sensitive
+    sensitive true
     not_if { slave? }
     not_if { user_exists?(new_resource) }
   end
@@ -80,7 +77,7 @@ action :drop do
   execute "drop postgresql user #{new_resource.create_user}" do
     user 'postgres'
     command drop_user_sql(new_resource)
-    sensitive true
+    sensitive use_pass
     not_if { slave? }
     only_if { user_exists?(new_resource) }
   end
@@ -91,6 +88,7 @@ action :grant do
     execute "grant #{new_resource.create_user} access to #{new_resource.database}" do
       user 'postgres'
       command grant_user_db_sql(new_resource)
+      sensitive use_pass
       not_if { slave? }
       only_if { user_exists?(new_resource) && database_exists?(new_resource) }
     end

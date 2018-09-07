@@ -23,14 +23,11 @@ property :setup_repo,        [true, false], default: true
 property :hba_file,          String, default: lazy { "#{conf_dir}/main/pg_hba.conf" }
 property :ident_file,        String, default: lazy { "#{conf_dir}/main/pg_ident.conf" }
 property :external_pid_file, String, default: lazy { "/var/run/postgresql/#{version}-main.pid" }
-property :password,          [String, nil], default: 'generate' # Set to nil if we do not want to set a password
-property :port,              Integer, default: 5432
 property :initdb_locale,     String
 
 # Connection preferences
-property :user,     String, default: 'postgres'
 property :database, String
-property :host,     [String, nil]
+property :conn,     Hash, default: {}
 
 action :install do
   node.run_state['postgresql'] ||= {}
@@ -46,8 +43,9 @@ end
 
 action :create do
   execute 'init_db' do
+    user 'postgres'
     command rhel_init_db_command(new_resource)
-    user new_resource.user
+    sensitive use_pass
     not_if { initialized? }
     only_if { platform_family?('rhel', 'fedora', 'amazon') }
   end
@@ -62,12 +60,13 @@ action :create do
     action [:enable, :start]
   end
 
-  # Generate a random password or set it as per new_resource.password.
-  bash 'generate-postgres-password' do
+  # Generate a random password or set it as per new_resource.conn['password'].
+  execute 'generate-postgres-password' do
     user 'postgres'
-    code alter_role_sql(new_resource)
+    command alter_role_sql(new_resource)
+    sensitive true
     not_if { user_has_password?(new_resource) }
-    not_if { new_resource.password.nil? }
+    not_if { new_resource.conn[:password].nil? }
   end
 end
 

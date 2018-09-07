@@ -21,12 +21,13 @@ module PostgresqlCookbook
   module Helpers
     require 'securerandom'
 
-    def psql_command_string(new_resource, query, grep_for = nil)
-      cmd = "/usr/bin/psql -c \"#{query}\""
+    def psql_command_string(new_resource, query, grep_for = nil, concise: false)
+      cmd = conn_cli '/usr/bin/psql'
+      cmd << " -At" if concise
+      cmd << " -c \"#{query}\""
+      cmd << " -U #{new_resource.conn[:user] || 'postgres'}"
+      cmd << " -p #{new_resource.conn[:port] || 5432}"
       cmd << " -d #{new_resource.database}" if new_resource.database
-      cmd << " -U #{new_resource.user}"     if new_resource.user
-      cmd << " --host #{new_resource.host}" if new_resource.host
-      cmd << " --port #{new_resource.port}" if new_resource.port
       cmd << " | grep #{grep_for}"          if grep_for
       cmd
     end
@@ -34,11 +35,10 @@ module PostgresqlCookbook
     def execute_sql(new_resource, query)
       # If we don't pass in a user to the resource
       # default to the postgres user
-      user = new_resource.user ? new_resource.user : 'postgres'
+      user = new_resource.conn[:user] || 'postgres'
 
       # Query could be a String or an Array of Strings
       statement = query.is_a?(String) ? query : query.join("\n")
-
       cmd = shell_out(statement, user: user)
 
       # Pass back cmd so we can decide what to do with it in the calling method.
@@ -50,8 +50,8 @@ module PostgresqlCookbook
 
       # Set some values to nil so we can use the generic psql_command_string method.
       # res = {
-      #   user: new_resource.user,
-      #   port: new_resource.port,
+      #   user: new_resource.conn[:password],
+      #   port: new_resource.conn[:port],
       #   database: nil,
       #   host: nil,
       # }
@@ -242,13 +242,43 @@ module PostgresqlCookbook
 
     # Generate a password if the value is set to generate.
     def postgres_password(new_resource)
-      new_resource.password == 'generate' ? secure_random : new_resource.password
+      new_resource.conn[:password_generate] ? secure_random : new_resource.conn[:password]
+    end
+
+    # Checks if a config value needs restart
+    def needs_restart
+      sql = "SELECT COUNT(*) FROM pg_settings WHERE pending_restart=\'t\'"
+      cmd = psql_command_string(new_resource, sql, concise: true)
+      cmd = execute_sql(new_resource, cmd)
+
+      cmd.exitstatus != 0 || cmd.stdout.strip.to_i > 0
     end
 
     # Grants a user access to database
     def grant_user_db_sql(new_resource)
       sql = "GRANT #{new_resource.privileges.join(', ')} ON DATABASE #{new_resource.database} TO #{new_resource.create_user};"
       psql_command_string(new_resource, sql)
+    end
+
+    # Return true if connection via TCP should be used - either host must be remote or user must be different from postgres
+    def use_tcp
+      return false if new_resource.conn[:peer] # flag peer authentication immediately
+
+      not [nil, 'localhost', '127.0.0.1'].include?(new_resource.conn[:host]) && [nil, 'postgres'].include?(new_resource.conn[:user])
+    end
+
+    # True if postgresql password will be used
+    def use_pass
+      new_resource.conn.key?(:password) && use_tcp
+    end
+
+    # Add connection params to postgresql cli command
+    def conn_cli(executable)
+      return executable unless use_tcp
+      cmd = use_pass ? "PGPASSWORD=#{new_resource.conn[:password]} " : ''
+      cmd << executable
+      cmd << " -h #{new_resource.conn[:host] || 'localhost'}"
+      cmd
     end
   end
 end
