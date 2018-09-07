@@ -247,7 +247,7 @@ module PostgresqlCookbook
 
     # Checks if a config value needs restart
     def needs_restart
-      sql = "SELECT COUNT(*) FROM pg_settings WHERE pending_restart=\'t\'"
+      sql = "SELECT COUNT(*) FROM pg_settings WHERE pending_restart='t';"
       cmd = psql_command_string(new_resource, sql, concise: true)
       cmd = execute_sql(new_resource, cmd)
 
@@ -256,7 +256,7 @@ module PostgresqlCookbook
 
     # Grants a user access to database
     def grant_user_db_sql(new_resource)
-      sql = "GRANT #{new_resource.privileges.join(', ')} ON DATABASE #{new_resource.database} TO #{new_resource.create_user};"
+      sql = "GRANT #{new_resource.privileges.join(', ')} ON DATABASE \\\"#{new_resource.database}\\\" TO \\\"#{new_resource.create_user}\\\";"
       psql_command_string(new_resource, sql)
     end
 
