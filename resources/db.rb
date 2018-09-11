@@ -35,7 +35,7 @@ action :create do
   createdb << " #{new_resource.database}"
 
   execute "Create Database #{new_resource.database}" do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command createdb
     sensitive use_pass
     not_if { slave? }
@@ -51,7 +51,7 @@ action :drop do
     dropdb << " #{new_resource.database}"
 
     execute "drop postgresql database #{new_resource.database})" do
-      user 'postgres'
+      user 'postgres' if sys_user_exists?('postgres')
       command dropdb
       sensitive use_pass
       not_if { slave? }

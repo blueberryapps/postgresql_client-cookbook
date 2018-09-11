@@ -43,7 +43,7 @@ end
 
 action :create do
   execute 'init_db' do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command rhel_init_db_command(new_resource)
     sensitive use_pass
     not_if { initialized? }
@@ -62,7 +62,7 @@ action :create do
 
   # Generate a random password or set it as per new_resource.conn['password'].
   execute 'generate-postgres-password' do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command alter_role_sql(new_resource)
     sensitive true
     not_if { user_has_password?(new_resource) }

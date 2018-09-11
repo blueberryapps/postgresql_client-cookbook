@@ -37,7 +37,7 @@ action :create do
   Chef::Log.warn('You cannot use "attributes" property with create action.') unless new_resource.attributes.empty?
 
   execute "create postgresql user #{new_resource.create_user}" do # ~FC009
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command create_user_sql(new_resource)
     sensitive true
     not_if { slave? }
@@ -48,7 +48,7 @@ end
 action :update do
   if new_resource.attributes.empty?
     execute "update postgresql user #{new_resource.create_user}" do
-      user 'postgres'
+      user 'postgres' if sys_user_exists?('postgres')
       command update_user_sql(new_resource)
       sensitive true
       not_if { slave? }
@@ -63,7 +63,7 @@ action :update do
           end
 
       execute "Update postgresql user #{new_resource.create_user} to set #{attr}" do
-        user 'postgres'
+        user 'postgres' if sys_user_exists?('postgres')
         command update_user_with_attributes_sql(new_resource, v)
         sensitive true
         not_if { slave? }
@@ -75,7 +75,7 @@ end
 
 action :drop do
   execute "drop postgresql user #{new_resource.create_user}" do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command drop_user_sql(new_resource)
     sensitive use_pass
     not_if { slave? }
@@ -86,7 +86,7 @@ end
 action :grant do
   if new_resource.database && new_resource.privileges
     execute "grant #{new_resource.create_user} access to #{new_resource.database}" do
-      user 'postgres'
+      user 'postgres' if sys_user_exists?('postgres')
       command grant_user_db_sql(new_resource)
       sensitive use_pass
       not_if { slave? }

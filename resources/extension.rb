@@ -31,7 +31,7 @@ action :create do
     cmd = %(#{conn_cli 'psql'} -f "#{extension_path}" -d test_1 -U postgres --port 5432)
 
     execute "Load extension #{new_resource.name}" do
-      user 'postgres'
+      user 'postgres' if sys_user_exists?('postgres')
       command cmd
       sensitive use_pass
       action :run
@@ -47,7 +47,7 @@ action :create do
   end
 
   execute "CREATE EXTENSION #{new_resource.name}" do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command create_extension_sql(new_resource)
     sensitive use_pass
     action :run
@@ -58,7 +58,7 @@ end
 
 action :drop do
   execute "DROP EXTENSION #{new_resource.name}" do
-    user 'postgres'
+    user 'postgres' if sys_user_exists?('postgres')
     command psql_command_string(new_resource, "DROP EXTENSION IF EXISTS \"#{new_resource.extension}\"")
     sensitive use_pass
     action :run

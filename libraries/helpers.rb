@@ -39,7 +39,7 @@ module PostgresqlCookbook
 
       # Query could be a String or an Array of Strings
       statement = query.is_a?(String) ? query : query.join("\n")
-      cmd = shell_out(statement, user: user)
+      cmd = sys_user_exists?(user) ? shell_out(statement, user: user) : shell_out(statement)
 
       # Pass back cmd so we can decide what to do with it in the calling method.
       cmd
@@ -284,6 +284,11 @@ module PostgresqlCookbook
       cmd << executable
       cmd << " -h #{new_resource.conn[:host] || 'localhost'}"
       cmd
+    end
+
+    # True if provided system user exists on the node
+    def sys_user_exists?(user)
+      node['etc']['passwd'].key?(user.to_sym)
     end
   end
 end
