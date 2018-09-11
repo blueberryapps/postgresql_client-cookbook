@@ -26,6 +26,8 @@ property :conn,     Hash, default: {}
 
 action :create do
   createdb =  conn_cli 'createdb'
+  createdb << " -U #{new_resource.conn[:user] || 'postgres'}"
+  createdb << " -p #{new_resource.conn[:port] || 5432}"
   createdb << " -E #{new_resource.encoding}" if new_resource.encoding
   createdb << " -l #{new_resource.locale}" if new_resource.locale
   createdb << " -T #{new_resource.template}" unless new_resource.template.empty?
@@ -44,6 +46,8 @@ end
 action :drop do
   converge_by "Drop PostgreSQL Database #{new_resource.database}" do
     dropdb =  conn_cli 'dropdb'
+    dropdb << " -U #{new_resource.conn[:user] || 'postgres'}"
+    dropdb << " -p #{new_resource.conn[:port] || 5432}"
     dropdb << " #{new_resource.database}"
 
     execute "drop postgresql database #{new_resource.database})" do
