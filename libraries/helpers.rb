@@ -184,8 +184,9 @@ module PostgresqlCookbook
       end
     end
 
+    # Host is local and it is not slave
     def slave?
-      ::File.exist? "#{data_dir}/recovery.conf"
+      is_local? && ::File.exist?("#{data_dir}/recovery.conf")
     end
 
     def initialized?
@@ -260,11 +261,15 @@ module PostgresqlCookbook
       psql_command_string(new_resource, sql)
     end
 
+    def is_local?
+      [nil, 'localhost', '127.0.0.1'].include?(new_resource.conn[:host])
+    end
+
     # Return true if connection via TCP should be used - either host must be remote or user must be different from postgres
     def use_tcp
       return false if new_resource.conn[:peer] # flag peer authentication immediately
 
-      not [nil, 'localhost', '127.0.0.1'].include?(new_resource.conn[:host]) && [nil, 'postgres'].include?(new_resource.conn[:user])
+      not is_local? && [nil, 'postgres'].include?(new_resource.conn[:user])
     end
 
     # True if postgresql password will be used
