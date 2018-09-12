@@ -246,7 +246,7 @@ module PostgresqlCookbook
       new_resource.conn[:password_generate] ? secure_random : new_resource.conn[:password]
     end
 
-    # Checks if a config value needs restart
+    # Checks if a config change requires restart
     def needs_restart
       sql = "SELECT COUNT(*) FROM pg_settings WHERE pending_restart='t';"
       cmd = psql_command_string(new_resource, sql, concise: true)

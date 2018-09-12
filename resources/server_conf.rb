@@ -76,12 +76,16 @@ action :modify do
       additional_config: custom
     )
     notifies :reload, 'service[postgresql]', :immediately
+    notifies :conf_changed, new_resource, :immediately
   end
+end
 
-  # restart the service if restart is needed
+action :conf_changed do
+  # PostgreSQL v9.4 and lower doesn't provide the pg_restart column so we restart whenever the config template changes
+  # In later versions we check this column to avoid unnecessary restarts
   service 'postgresql' do
     action :restart
-  end if needs_restart
+  end if new_resource.version < '9.5' || needs_restart
 end
 
 action_class do
