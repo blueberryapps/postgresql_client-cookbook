@@ -39,6 +39,9 @@ action :install do
   end
 
   package server_pkg_name
+
+  # during first install of postgres server, add a stub user info to ohai
+  node.default['etc']['passwd']['postgres'] ||= {}
 end
 
 action :create do
