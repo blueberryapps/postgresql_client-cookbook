@@ -24,6 +24,7 @@ property :hba_file,          String, default: lazy { "#{conf_dir}/main/pg_hba.co
 property :ident_file,        String, default: lazy { "#{conf_dir}/main/pg_ident.conf" }
 property :external_pid_file, String, default: lazy { "/var/run/postgresql/#{version}-main.pid" }
 property :initdb_locale,     String
+property :extensions,        Array
 
 # Connection preferences
 property :database, String
@@ -70,6 +71,14 @@ action :create do
     sensitive true
     not_if { user_has_password?(new_resource) }
     not_if { new_resource.conn[:password].nil? }
+  end
+end
+
+action :extensions do
+  execute 'install-extensions' do
+    user 'postgres' if sys_user_exists?('postgres')
+    command install_extensions(new_resource)
+    sensitive use_pass
   end
 end
 

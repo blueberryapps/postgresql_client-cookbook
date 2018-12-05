@@ -290,5 +290,14 @@ module PostgresqlCookbook
     def sys_user_exists?(user)
       node['etc']['passwd'].key?(user.to_sym)
     end
+
+    # Install extensions provided in extensions hash
+    def install_extensions(new_resource)
+      sql = ''
+      new_resource.extensions.each do |ext|
+        sql << "CREATE EXTENSION IF NOT EXISTS #{ext};"
+      end
+      psql_command_string(new_resource, sql)
+    end
   end
 end
