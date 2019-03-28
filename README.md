@@ -1,8 +1,9 @@
 # postgresql cookbook
 
-[![Build Status](https://travis-ci.org/sous-chefs/postgresql.svg?branch=master)](https://travis-ci.org/sous-chefs/postgresql) [![Cookbook Version](https://img.shields.io/cookbook/v/postgresql.svg)](https://supermarket.chef.io/cookbooks/postgresql)
+Client wrapper for pgsql cmd util
+Forked from https://github.com/sous-chefs/postgresql and stripped of most things
 
-Installs and configures PostgreSQL as a client or a server.
+Original Readme below...
 
 ## Upgrading
 
