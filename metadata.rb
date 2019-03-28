@@ -9,6 +9,7 @@ version           '7.1.0'
 source_url        'https://github.com/blueberryapps/postgresql_client-cookbook'
 issues_url        'https://github.com/blueberryapps/postgresql_client-cookbook/issues'
 chef_version      '>= 13.8'
+depends           'postgresql', '> 7.0' # postgresql_client_install
 
 %w(ubuntu debian fedora amazon redhat centos scientific oracle).each do |os|
   supports os

@@ -71,29 +71,11 @@ module PostgresqlCookbook
       cmd.exitstatus == 0
     end
 
-    def extension_installed?(new_resource)
-      query = %(SELECT 'installed' FROM pg_extension WHERE extname='#{new_resource.extension}';)
-      !(execute_sql(new_resource, query) =~ /^installed$/).nil?
-    end
-
-    def alter_role_sql(new_resource)
-      sql = %(ALTER ROLE postgres ENCRYPTED PASSWORD '#{postgres_password(new_resource)}';)
-      psql_command_string(new_resource, sql)
-    end
-
     def create_extension_sql(new_resource)
       sql = "CREATE EXTENSION IF NOT EXISTS #{new_resource.extension}"
       sql << " FROM \"#{new_resource.old_version}\"" if new_resource.old_version
 
       psql_command_string(new_resource, sql)
-    end
-
-    def user_has_password?(new_resource)
-      sql = %(SELECT rolpassword from pg_authid WHERE rolname='postgres' AND rolpassword IS NOT NULL;)
-      cmd = psql_command_string(new_resource, sql)
-
-      res = execute_sql(new_resource, cmd)
-      res.stdout =~ /1 row/ ? true : false
     end
 
     def role_sql(new_resource)
@@ -153,45 +135,9 @@ module PostgresqlCookbook
       end
     end
 
-    def conf_dir(version = node.run_state['postgresql']['version'])
-      case node['platform_family']
-      when 'rhel', 'fedora'
-        "/var/lib/pgsql/#{version}/data"
-      when 'amazon'
-        if node['virtualization']['system'] == 'docker'
-          "/var/lib/pgsql#{version.delete('.')}/data"
-        else
-          "/var/lib/pgsql/#{version}/data"
-        end
-      when 'debian'
-        "/etc/postgresql/#{version}/main"
-      end
-    end
-
-    # determine the platform specific service name
-    def platform_service_name(version = node.run_state['postgresql']['version'])
-      case node['platform_family']
-      when 'rhel', 'fedora'
-        "postgresql-#{version}"
-      when 'amazon'
-        if node['virtualization']['system'] == 'docker'
-          "postgresql#{version.delete('.')}"
-        else
-          "postgresql-#{version}"
-        end
-      else
-        'postgresql'
-      end
-    end
-
     # Host is local and it is not slave
     def slave?
       is_local? && ::File.exist?("#{data_dir}/recovery.conf")
-    end
-
-    def initialized?
-      return true if ::File.exist?("#{conf_dir}/PG_VERSION")
-      false
     end
 
     def secure_random
@@ -200,59 +146,9 @@ module PostgresqlCookbook
       r
     end
 
-    # determine the platform specific server package name
-    def server_pkg_name
-      platform_family?('debian') ? "postgresql-#{new_resource.version}" : "postgresql#{new_resource.version.delete('.')}-server"
-    end
-
-    # determine the appropriate DB init command to run based on RHEL/Fedora/Amazon release
-    # initdb defaults to the execution environment.
-    # https://www.postgresql.org/docs/9.5/static/locale.html
-    def rhel_init_db_command(new_resource)
-      cmd = if platform_family?('amazon')
-              '/usr/bin/initdb'
-            else
-              "/usr/pgsql-#{new_resource.version}/bin/initdb"
-            end
-      cmd << " --locale '#{new_resource.initdb_locale}'" if new_resource.initdb_locale
-      cmd << " -D '#{data_dir(new_resource.version)}'"
-    end
-
-    # Given the base URL build the complete URL string for a yum repo
-    def yum_repo_url(base_url)
-      "#{base_url}/#{new_resource.version}/#{yum_repo_platform_family_string}/#{yum_repo_platform_string}"
-    end
-
-    # The postgresql yum repos URLs are organized into redhat and fedora directories.s
-    # route things to the right place based on platform_family
-    def yum_repo_platform_family_string
-      platform_family?('fedora') ? 'fedora' : 'redhat'
-    end
-
-    # Build the platform string that makes up the final component of the yum repo URL
-    def yum_repo_platform_string
-      platform = platform?('fedora') ? 'fedora' : 'rhel'
-      release = platform?('amazon') ? '6' : '$releasever'
-      "#{platform}-#{release}-$basearch"
-    end
-
-    # On Amazon use the RHEL 6 packages. Otherwise use the releasever yum variable
-    def yum_releasever
-      platform?('amazon') ? '6' : '$releasever'
-    end
-
     # Generate a password if the value is set to generate.
     def postgres_password(new_resource)
       new_resource.conn[:password_generate] ? secure_random : new_resource.conn[:password]
-    end
-
-    # Checks if a config change requires restart
-    def needs_restart
-      sql = "SELECT COUNT(*) FROM pg_settings WHERE pending_restart='t';"
-      cmd = psql_command_string(new_resource, sql, concise: true)
-      cmd = execute_sql(new_resource, cmd)
-
-      cmd.exitstatus != 0 || cmd.stdout.strip.to_i > 0
     end
 
     # Grants a user access to database
@@ -289,15 +185,6 @@ module PostgresqlCookbook
     # True if provided system user exists on the node
     def sys_user_exists?(user)
       node['etc']['passwd'].key?(user.to_sym)
-    end
-
-    # Install extensions provided in extensions hash
-    def install_extensions(new_resource)
-      sql = ''
-      new_resource.extensions.each do |ext|
-        sql << "CREATE EXTENSION IF NOT EXISTS #{ext};"
-      end
-      psql_command_string(new_resource, sql)
     end
   end
 end

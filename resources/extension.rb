@@ -17,7 +17,6 @@
 
 property :extension,        String, name_property: true
 property :old_version,      String
-property :source_directory, String
 property :version,          String, default: '--1.0'
 
 # Connection prefernces
@@ -25,34 +24,12 @@ property :database, String, required: true
 property :conn,     Hash, default: {}
 
 action :create do
-  # load extension from source
-  if new_resource.source_directory
-    extension_path = ::File.join(new_resource.source_directory, "#{new_resource.extension}#{new_resource.version}.sql")
-    cmd = %(#{conn_cli 'psql'} -f "#{extension_path}" -d test_1 -U postgres --port 5432)
-
-    execute "Load extension #{new_resource.name}" do
-      user 'postgres' if sys_user_exists?('postgres')
-      command cmd
-      sensitive use_pass
-      action :run
-      not_if { slave? }
-      not_if { extension_installed?(new_resource) }
-    end
-
-    control_file_path = ::File.join(new_resource.source_directory, "#{new_resource.extension}.control")
-
-    link control_file_path do
-      to "/usr/pgsql-#{node.run_state['postgresql']['version']}/share/extension/#{new_resource.extension}.control"
-    end
-  end
-
   execute "CREATE EXTENSION #{new_resource.name}" do
     user 'postgres' if sys_user_exists?('postgres')
     command create_extension_sql(new_resource)
     sensitive use_pass
     action :run
     not_if { slave? }
-    not_if { extension_installed?(new_resource) }
   end
 end
 
@@ -63,7 +40,6 @@ action :drop do
     sensitive use_pass
     action :run
     not_if { slave? }
-    only_if { extension_installed?(new_resource) }
   end
 end
 
