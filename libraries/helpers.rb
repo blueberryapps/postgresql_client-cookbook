@@ -17,7 +17,7 @@
 
 include Chef::Mixin::ShellOut # wrapping this inside the module breaks MiniTests which use shell_out
 
-module PostgresqlCookbook
+module PostgresqlClientCookbook
   module Helpers
     require 'securerandom'
 
