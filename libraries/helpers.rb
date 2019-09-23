@@ -184,7 +184,7 @@ module PostgresqlClientCookbook
 
     # True if provided system user exists on the node
     def sys_user_exists?(user)
-      node['etc']['passwd'].key?(user.to_sym)
+      node['etc']['passwd'].key?(user.to_sym) rescue false
     end
   end
 end

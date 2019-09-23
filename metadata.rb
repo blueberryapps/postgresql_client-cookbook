@@ -5,7 +5,7 @@ maintainer_email  'azahumensky@blueberry.io'
 license           'Apache-2.0'
 description       'Client interface for postgresql'
 long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
-version           '7.1.0'
+version           '7.1.1'
 source_url        'https://github.com/blueberryapps/postgresql_client-cookbook'
 issues_url        'https://github.com/blueberryapps/postgresql_client-cookbook/issues'
 chef_version      '>= 13.8'
